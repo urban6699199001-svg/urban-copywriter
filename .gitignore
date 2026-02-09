@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+venv/
+.venv/
+.env
+.env.*
+
+# macOS
+.DS_Store
+*.swp
+
+# Xcode
+xcuserdata/
+DerivedData/
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# IDE
+.idea/
+.vscode/
+
+# Build
+build/
+dist/
+*.egg-info/
+
+# GCloud SDK (local install)
+google-cloud-cli-darwin-arm.tar.gz
+
+# Misc
+*.tar.gz
+*.log

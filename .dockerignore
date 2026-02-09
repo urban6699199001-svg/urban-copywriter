@@ -1,0 +1,13 @@
+.git
+.gitignore
+.env
+.env.*
+__pycache__/
+*.pyc
+venv/
+UrbanApp/
+*.tar.gz
+README.md
+Dockerfile
+.dockerignore
+.gcloudignore
