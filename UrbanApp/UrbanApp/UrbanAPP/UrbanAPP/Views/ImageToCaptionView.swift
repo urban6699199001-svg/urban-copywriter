@@ -13,6 +13,8 @@ struct ImageToCaptionView: View {
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
+    @State private var showPaywall = false
+    var subscriptionManager = SubscriptionManager.shared
 
     var body: some View {
         NavigationStack {
@@ -77,6 +79,9 @@ struct ImageToCaptionView: View {
             } message: {
                 Text(errorMessage)
             }
+            .sheet(isPresented: $showPaywall) {
+                PaywallView()
+            }
         }
     }
 
@@ -90,6 +95,10 @@ struct ImageToCaptionView: View {
     }
 
     private func generateCaption() async {
+        guard subscriptionManager.useFreeUse() else {
+            showPaywall = true
+            return
+        }
         guard let image = selectedImage else { return }
         isLoading = true
         defer { isLoading = false }

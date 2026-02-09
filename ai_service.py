@@ -14,6 +14,7 @@ from google import genai
 from google.genai import types
 
 import config
+import image_utils
 
 logger = logging.getLogger(__name__)
 
@@ -434,35 +435,39 @@ def replace_background(base64_data: str, scene: str, mime_type: str = "image/jpe
 # Mode 3: AI 排版設計（時尚雜誌封面風格）
 # ============================================================
 
-DESIGN_SYSTEM_PROMPT = """你是一位頂尖的時尚雜誌封面設計師和字體排版大師。
+DESIGN_SYSTEM_PROMPT = """You are a world-class magazine cover designer.
 
-【任務】
-使用者會上傳一張圖片，並提供一段要放在圖片上的文字。
-請將這段文字以「時尚雜誌封面」的排版風格，設計到圖片上，生成一張全新的設計圖。
+【TASK】
+The user will upload a photo and provide text to overlay on it.
+Create a stunning magazine-cover-style design with the text on the image.
 
-【設計風格 — 參考 Vogue、ELLE、GQ 等時尚雜誌封面】
-- 文字排版要有層次感：主標題大而粗、副標題小而細
-- 字體位置要有設計感：不一定要在正中間，可以在左下、右上等
-- 善用留白：不要把文字塞滿，要有呼吸空間
-- 使用對比色：深色底配白/金文字，淺色底配黑/深色文字
-- 可以加入簡約的裝飾元素（細線、點、幾何圖形）
-- 整體風格要：高級、時髦、有質感、吸引目光
+【CRITICAL RULES — MUST FOLLOW】
+1. FACE PRESERVATION: Do NOT change, modify, or alter any person's face, skin tone, hair, expression, or appearance in any way. The person must look 100% identical to the original photo.
+2. The original photo must remain as the background — do NOT generate a completely different image.
+3. Do NOT block the person's face with text.
 
-【文字排版規則】
-- 中文字體要清晰可讀，大小適中
-- 文字必須完全融入設計，像是原本就在圖片上的
-- 如果文字較長，自動拆成主標語 + 小字副標
-- 右下角加上小字「URBAN」品牌標
+【DESIGN STYLE — Reference Vogue, ELLE, GQ covers】
+- Typography with hierarchy: large bold headline + smaller subtitle
+- Creative text placement: bottom-left, top-right, not always center
+- Use contrast colors: white/gold text on dark areas, black text on light areas
+- Add minimal decorative elements (thin lines, dots, geometric shapes)
+- Overall feel: premium, fashionable, eye-catching
+- Add small "URBAN" brand mark in bottom-right corner
 
-【絕對禁止】
-- 不要改變原圖中人物的臉部和外觀
-- 不要生成與原圖完全不同的新圖
-- 不要讓文字擋住圖片中的主要人物臉部"""
+【TEXT RENDERING — EXTREMELY IMPORTANT】
+- Render every Chinese character EXACTLY as provided — no garbled text, no missing strokes
+- Each character must be complete and clearly readable
+- Use clean, modern font style for Chinese text
+- If unsure about a character, use a simple sans-serif style
+- TEXT CLARITY is more important than artistic style
+
+The text to put on the image is provided below. You MUST render it character by character, exactly as written."""
 
 
 def design_with_ai(base64_data: str, text: str, mime_type: str = "image/jpeg") -> tuple[bytes, str]:
     """
-    用 Gemini 圖片模型直接做時尚雜誌風格排版設計。
+    用 Gemini 圖片模型做時尚雜誌風格排版設計。
+    使用英文 prompt + 強化人臉保護 + 逐字中文渲染指令。
 
     Returns:
         (image_bytes, description) - 設計後的圖片和描述
@@ -471,10 +476,18 @@ def design_with_ai(base64_data: str, text: str, mime_type: str = "image/jpeg") -
 
     image_bytes = base64.b64decode(base64_data)
 
+    # 把中文字逐字列出，幫助 AI 正確渲染
+    char_list = " ".join(text)
+
     prompt_text = (
         f"{DESIGN_SYSTEM_PROMPT}\n\n"
-        f"要放在圖片上的文字：「{text}」\n\n"
-        f"請將這段文字以時尚雜誌封面的風格排版到圖片上，生成一張設計圖。"
+        f"TEXT TO OVERLAY: 「{text}」\n"
+        f"CHARACTER BY CHARACTER: {char_list}\n\n"
+        f"REMINDER:\n"
+        f"- Do NOT change the person's face — it must be identical to the original\n"
+        f"- Render each Chinese character exactly: {char_list}\n"
+        f"- Create a Vogue/ELLE magazine cover style design\n"
+        f"- Generate the image now."
     )
 
     contents = [
@@ -487,21 +500,53 @@ def design_with_ai(base64_data: str, text: str, mime_type: str = "image/jpeg") -
         )
     ]
 
-    response = _call_image_model_with_retry(contents=contents)
+    # 模型優先順序（Gemini 3 Pro Image 文字渲染最強，排第一）
+    design_models = [
+        "gemini-3-pro-image-preview",              # 最強文字渲染 + 設計能力
+        "gemini-2.0-flash-exp-image-generation",    # 備用
+        config.GEMINI_IMAGE_MODEL,                   # 備用
+    ]
 
-    result_image_bytes = None
-    description = ""
+    for model_name in design_models:
+        for attempt in range(3):
+            try:
+                logger.info("設計模型呼叫: %s (嘗試 %d/3)", model_name, attempt + 1)
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=contents,
+                    config=types.GenerateContentConfig(
+                        response_modalities=["IMAGE", "TEXT"],
+                    ),
+                )
 
-    for part in response.candidates[0].content.parts:
-        if part.inline_data is not None:
-            result_image_bytes = part.inline_data.data
-        elif part.text is not None:
-            description = part.text
+                result_image_bytes = None
+                description = ""
 
-    if result_image_bytes is None:
-        raise ValueError("Gemini 未回傳圖片，請稍後再試")
+                for part in response.candidates[0].content.parts:
+                    if part.inline_data is not None:
+                        result_image_bytes = part.inline_data.data
+                    elif part.text is not None:
+                        description = part.text
 
-    return result_image_bytes, description
+                if result_image_bytes is not None:
+                    return result_image_bytes, description
+
+            except Exception as e:
+                error_str = str(e)
+                if "503" in error_str or "overloaded" in error_str.lower():
+                    wait_time = (attempt + 1) * 3
+                    logger.warning("模型 %s 過載，等待 %ds...", model_name, wait_time)
+                    time.sleep(wait_time)
+                    continue
+                elif "404" in error_str or "not found" in error_str.lower():
+                    logger.warning("模型 %s 不存在，跳到下一個", model_name)
+                    break
+                else:
+                    raise
+
+        logger.warning("模型 %s 全部失敗，嘗試下一個...", model_name)
+
+    raise ValueError("所有設計模型暫時不可用，請稍後再試")
 
 
 # ============================================================

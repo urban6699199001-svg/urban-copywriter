@@ -40,6 +40,8 @@ struct ConceptToImageTab: View {
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
+    @State private var showPaywall = false
+    var subscriptionManager = SubscriptionManager.shared
     @FocusState private var isFocused: Bool
 
     var body: some View {
@@ -100,9 +102,16 @@ struct ConceptToImageTab: View {
         } message: {
             Text(errorMessage)
         }
+        .sheet(isPresented: $showPaywall) {
+            PaywallView()
+        }
     }
 
     private func generateImage() async {
+        guard subscriptionManager.useFreeUse() else {
+            showPaywall = true
+            return
+        }
         isLoading = true
         defer { isLoading = false }
 
@@ -127,6 +136,8 @@ struct BackgroundReplaceTab: View {
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
+    @State private var showPaywall = false
+    var subscriptionManager = SubscriptionManager.shared
     @FocusState private var isFocused: Bool
 
     private let sceneSuggestions = [
@@ -220,6 +231,9 @@ struct BackgroundReplaceTab: View {
         } message: {
             Text(errorMessage)
         }
+        .sheet(isPresented: $showPaywall) {
+            PaywallView()
+        }
     }
 
     private func loadImage(from item: PhotosPickerItem?) async {
@@ -232,6 +246,10 @@ struct BackgroundReplaceTab: View {
     }
 
     private func replaceBackground() async {
+        guard subscriptionManager.useFreeUse() else {
+            showPaywall = true
+            return
+        }
         guard let image = selectedImage else { return }
         isLoading = true
         defer { isLoading = false }

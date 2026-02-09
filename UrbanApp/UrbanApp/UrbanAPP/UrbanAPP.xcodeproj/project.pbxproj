@@ -27,6 +27,7 @@
 		9DDCC9F22F399FF8002BA4B9 /* UrbanAPP.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = UrbanAPP.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9DDCCA042F399FFA002BA4B9 /* UrbanAPPTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = UrbanAPPTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		9DDCCA0E2F399FFA002BA4B9 /* UrbanAPPUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = UrbanAPPUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		9DDCCB112F39DBDC002BA4B9 /* Products.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Products.storekit; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -75,9 +76,11 @@
 		9DDCC9E92F399FF8002BA4B9 = {
 			isa = PBXGroup;
 			children = (
+				9DDCCB112F39DBDC002BA4B9 /* Products.storekit */,
 				9DDCC9F42F399FF8002BA4B9 /* UrbanAPP */,
 				9DDCCA072F399FFA002BA4B9 /* UrbanAPPTests */,
 				9DDCCA112F399FFA002BA4B9 /* UrbanAPPUITests */,
+				9DDCCB0D2F39CF11002BA4B9 /* Frameworks */,
 				9DDCC9F32F399FF8002BA4B9 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -90,6 +93,13 @@
 				9DDCCA0E2F399FFA002BA4B9 /* UrbanAPPUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		9DDCCB0D2F39CF11002BA4B9 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -393,6 +403,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = UrbanAPP/UrbanAPP.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 3Z96NU5AJH;
@@ -421,6 +432,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = UrbanAPP/UrbanAPP.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 3Z96NU5AJH;

@@ -1,0 +1,75 @@
+{
+  "identifier" : "F1A2B3C4-D5E6-7890-ABCD-EF1234567890",
+  "type" : "AutoRenewableSubscription",
+  "version" : 3,
+  "subscriptionGroupID" : "A1B2C3D4-E5F6-7890-ABCD-123456789012",
+  "subscriptionGroups" : [
+    {
+      "id" : "A1B2C3D4-E5F6-7890-ABCD-123456789012",
+      "localizations" : [
+        {
+          "description" : "URBAN Pro 訂閱方案",
+          "displayName" : "URBAN Pro",
+          "locale" : "zh_TW"
+        }
+      ],
+      "name" : "URBAN Pro",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "2.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "B1C2D3E4-F5A6-7890-BCDE-234567890123",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "每月自動續訂，隨時可取消",
+              "displayName" : "月訂閱方案",
+              "locale" : "zh_TW"
+            }
+          ],
+          "name" : "月訂閱方案",
+          "productID" : "com.urban.copywriter.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "URBAN Pro 月訂閱",
+          "subscriptionGroupID" : "A1B2C3D4-E5F6-7890-ABCD-123456789012",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : []
+        },
+        {
+          "adHocOffers" : [],
+          "codeOffers" : [],
+          "displayPrice" : "24.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "C1D2E3F4-A5B6-7890-CDEF-345678901234",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "年繳更划算，省下超過 30%",
+              "displayName" : "年訂閱方案",
+              "locale" : "zh_TW"
+            }
+          ],
+          "name" : "年訂閱方案",
+          "productID" : "com.urban.copywriter.yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "URBAN Pro 年訂閱",
+          "subscriptionGroupID" : "A1B2C3D4-E5F6-7890-ABCD-123456789012",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : []
+        }
+      ]
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "1234567890",
+    "_developerTeamID" : "XXXXXXXXXX",
+    "_failTransactionsEnabled" : false,
+    "_locale" : "zh_TW",
+    "_storeKitErrors" : [],
+    "_timeRate" : 6
+  }
+}

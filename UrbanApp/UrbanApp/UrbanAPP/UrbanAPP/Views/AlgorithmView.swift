@@ -11,6 +11,8 @@ struct AlgorithmView: View {
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
+    @State private var showPaywall = false
+    var subscriptionManager = SubscriptionManager.shared
     @FocusState private var isFocused: Bool
 
     var body: some View {
@@ -105,10 +107,17 @@ struct AlgorithmView: View {
             } message: {
                 Text(errorMessage)
             }
+            .sheet(isPresented: $showPaywall) {
+                PaywallView()
+            }
         }
     }
 
     private func analyze() async {
+        guard subscriptionManager.useFreeUse() else {
+            showPaywall = true
+            return
+        }
         isLoading = true
         defer { isLoading = false }
 

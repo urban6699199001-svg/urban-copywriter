@@ -15,6 +15,8 @@ struct DesignView: View {
     @State private var isLoading = false
     @State private var showError = false
     @State private var errorMessage = ""
+    @State private var showPaywall = false
+    var subscriptionManager = SubscriptionManager.shared
     @FocusState private var isTextFocused: Bool
 
     var body: some View {
@@ -103,6 +105,9 @@ struct DesignView: View {
             } message: {
                 Text(errorMessage)
             }
+            .sheet(isPresented: $showPaywall) {
+                PaywallView()
+            }
         }
     }
 
@@ -116,6 +121,10 @@ struct DesignView: View {
     }
 
     private func generateDesign() async {
+        guard subscriptionManager.useFreeUse() else {
+            showPaywall = true
+            return
+        }
         guard let image = selectedImage else { return }
         isLoading = true
         defer { isLoading = false }
