@@ -3,6 +3,7 @@
 //  UrbanAPP
 //
 //  訂閱付費牆 — 引導用戶購買 Pro 訂閱
+//  包含 Apple 審核要求的：訂閱資訊、隱私政策、使用條款連結
 //
 
 import SwiftUI
@@ -12,6 +13,12 @@ struct PaywallView: View {
     @Environment(\.dismiss) private var dismiss
     var subscriptionManager = SubscriptionManager.shared
     @State private var selectedProduct: Product?
+    @State private var retryCount = 0
+    private let maxRetries = 3
+
+    // Apple 審核要求的連結
+    private let privacyURL = URL(string: "https://urban6699199001-svg.github.io/urban-copywriter/privacy.html")!
+    private let termsURL = URL(string: "https://urban6699199001-svg.github.io/urban-copywriter/terms.html")!
 
     var body: some View {
         NavigationStack {
@@ -47,7 +54,6 @@ struct PaywallView: View {
                     if subscriptionManager.products.isEmpty {
                         VStack(spacing: 12) {
                             if let error = subscriptionManager.loadError {
-                                // 有錯誤，顯示原因
                                 VStack(spacing: 8) {
                                     Image(systemName: "exclamationmark.triangle")
                                         .font(.title2)
@@ -57,13 +63,16 @@ struct PaywallView: View {
                                         .foregroundStyle(.secondary)
                                         .multilineTextAlignment(.center)
                                     Button("重新載入") {
-                                        Task { await subscriptionManager.loadProducts() }
+                                        Task {
+                                            retryCount += 1
+                                            await subscriptionManager.loadProducts()
+                                            selectedProduct = subscriptionManager.products.last
+                                        }
                                     }
                                     .font(.caption)
                                     .buttonStyle(.bordered)
                                 }
                             } else {
-                                // 還在載入中
                                 ProgressView("載入方案中...")
                             }
                         }
@@ -80,6 +89,20 @@ struct PaywallView: View {
                         }
                         .padding(.horizontal)
                     }
+
+                    // MARK: - 訂閱說明（Apple 審核要求）
+                    VStack(spacing: 4) {
+                        Text("URBAN Pro 自動續訂訂閱")
+                            .font(.caption.weight(.semibold))
+                        Text("月訂閱：每月自動續訂 | 年訂閱：每年自動續訂")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                        Text("付款將透過 Apple ID 帳戶收取。訂閱會在到期前 24 小時自動續訂。可隨時在「設定 > Apple ID > 訂閱項目」取消。")
+                            .font(.caption2)
+                            .foregroundStyle(.tertiary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.horizontal, 24)
 
                     // MARK: - 購買按鈕
                     if let product = selectedProduct {
@@ -119,19 +142,28 @@ struct PaywallView: View {
                             .padding(.horizontal)
                     }
 
-                    // MARK: - 恢復購買 & 條款
-                    VStack(spacing: 8) {
+                    // MARK: - 恢復購買 & 條款連結（Apple 審核要求）
+                    VStack(spacing: 10) {
                         Button("恢復購買") {
                             Task { await subscriptionManager.restorePurchases() }
                         }
                         .font(.caption)
                         .foregroundStyle(.secondary)
 
-                        Text("訂閱會自動續訂，可隨時在「設定 > Apple ID > 訂閱項目」取消")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 24)
+                        // Apple 審核要求：必須有隱私政策和使用條款的可點擊連結
+                        HStack(spacing: 16) {
+                            Link("使用條款", destination: termsURL)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+
+                            Text("·")
+                                .font(.caption2)
+                                .foregroundStyle(.quaternary)
+
+                            Link("隱私政策", destination: privacyURL)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
                     }
                     .padding(.bottom, 20)
                 }
@@ -149,8 +181,15 @@ struct PaywallView: View {
             }
             .task {
                 await subscriptionManager.loadProducts()
-                // 預設選中年訂閱（通常更划算）
                 selectedProduct = subscriptionManager.products.last
+
+                // 如果載入失敗，自動重試（解決 iPad 上的載入問題）
+                if subscriptionManager.products.isEmpty && retryCount < maxRetries {
+                    try? await Task.sleep(for: .seconds(2))
+                    retryCount += 1
+                    await subscriptionManager.loadProducts()
+                    selectedProduct = subscriptionManager.products.last
+                }
             }
             .onChange(of: subscriptionManager.isSubscribed) { _, subscribed in
                 if subscribed { dismiss() }
