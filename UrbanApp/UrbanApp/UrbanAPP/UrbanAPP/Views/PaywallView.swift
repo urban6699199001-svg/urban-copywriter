@@ -13,8 +13,7 @@ struct PaywallView: View {
     @Environment(\.dismiss) private var dismiss
     var subscriptionManager = SubscriptionManager.shared
     @State private var selectedProduct: Product?
-    @State private var retryCount = 0
-    private let maxRetries = 3
+    @State private var isLoadingProducts = true
 
     // Apple 審核要求的連結
     private let privacyURL = URL(string: "https://urban6699199001-svg.github.io/urban-copywriter/privacy.html")!
@@ -51,33 +50,10 @@ struct PaywallView: View {
                     .padding(.horizontal)
 
                     // MARK: - 訂閱方案
-                    if subscriptionManager.products.isEmpty {
-                        VStack(spacing: 12) {
-                            if let error = subscriptionManager.loadError {
-                                VStack(spacing: 8) {
-                                    Image(systemName: "exclamationmark.triangle")
-                                        .font(.title2)
-                                        .foregroundStyle(.orange)
-                                    Text(error)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                        .multilineTextAlignment(.center)
-                                    Button("重新載入") {
-                                        Task {
-                                            retryCount += 1
-                                            await subscriptionManager.loadProducts()
-                                            selectedProduct = subscriptionManager.products.last
-                                        }
-                                    }
-                                    .font(.caption)
-                                    .buttonStyle(.bordered)
-                                }
-                            } else {
-                                ProgressView("載入方案中...")
-                            }
-                        }
-                        .padding()
-                    } else {
+                    if isLoadingProducts && subscriptionManager.products.isEmpty {
+                        ProgressView("載入方案中...")
+                            .padding()
+                    } else if !subscriptionManager.products.isEmpty {
                         VStack(spacing: 12) {
                             ForEach(subscriptionManager.products, id: \.id) { product in
                                 SubscriptionOptionCard(
@@ -88,50 +64,57 @@ struct PaywallView: View {
                             }
                         }
                         .padding(.horizontal)
-                    }
 
-                    // MARK: - 訂閱說明（Apple 審核要求）
-                    VStack(spacing: 4) {
-                        Text("URBAN Pro 自動續訂訂閱")
-                            .font(.caption.weight(.semibold))
-                        Text("月訂閱：每月自動續訂 | 年訂閱：每年自動續訂")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                        Text("付款將透過 Apple ID 帳戶收取。訂閱會在到期前 24 小時自動續訂。可隨時在「設定 > Apple ID > 訂閱項目」取消。")
-                            .font(.caption2)
-                            .foregroundStyle(.tertiary)
-                            .multilineTextAlignment(.center)
-                    }
-                    .padding(.horizontal, 24)
-
-                    // MARK: - 購買按鈕
-                    if let product = selectedProduct {
-                        Button {
-                            Task { await subscriptionManager.purchase(product) }
-                        } label: {
-                            HStack {
-                                if subscriptionManager.isPurchasing {
-                                    ProgressView()
-                                        .tint(.white)
-                                } else {
-                                    Text("訂閱 \(product.displayName)")
+                        // 購買按鈕
+                        if let product = selectedProduct {
+                            Button {
+                                Task { await subscriptionManager.purchase(product) }
+                            } label: {
+                                HStack {
+                                    if subscriptionManager.isPurchasing {
+                                        ProgressView()
+                                            .tint(.white)
+                                    } else {
+                                        Text("訂閱 \(product.displayName)")
+                                    }
+                                }
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 16)
+                                .background(
+                                    LinearGradient(
+                                        colors: [Color.brandNavy, Color.brandNavy.opacity(0.8)],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                            }
+                            .disabled(subscriptionManager.isPurchasing)
+                            .padding(.horizontal)
+                        }
+                    } else {
+                        // 產品載入失敗 — 不顯示錯誤，顯示友善提示
+                        VStack(spacing: 8) {
+                            Text("訂閱方案準備中")
+                                .font(.subheadline.weight(.medium))
+                            Text("請稍後再試，或前往 App Store 訂閱")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Button("重新載入") {
+                                Task {
+                                    isLoadingProducts = true
+                                    await subscriptionManager.loadProducts()
+                                    selectedProduct = subscriptionManager.products.last
+                                    isLoadingProducts = false
                                 }
                             }
-                            .font(.headline)
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(
-                                LinearGradient(
-                                    colors: [Color.brandNavy, Color.brandNavy.opacity(0.8)],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                            .font(.caption)
+                            .buttonStyle(.bordered)
+                            .padding(.top, 4)
                         }
-                        .disabled(subscriptionManager.isPurchasing)
-                        .padding(.horizontal)
+                        .padding()
                     }
 
                     // MARK: - 錯誤訊息
@@ -141,6 +124,19 @@ struct PaywallView: View {
                             .foregroundStyle(.red)
                             .padding(.horizontal)
                     }
+
+                    // MARK: - 訂閱說明（Apple 審核要求 - Guideline 3.1.2）
+                    VStack(spacing: 6) {
+                        Text("URBAN Pro 自動續訂訂閱")
+                            .font(.caption.weight(.semibold))
+
+                        Text("月訂閱：每月自動續訂 | 年訂閱：每年自動續訂\n付款將透過您的 Apple ID 帳戶收取。\n訂閱會在到期前 24 小時內自動續訂並收費。\n您可以隨時在「設定 > Apple ID > 訂閱項目」管理或取消訂閱。\n取消訂閱後，您仍可使用服務至當期結束。")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.horizontal, 24)
 
                     // MARK: - 恢復購買 & 條款連結（Apple 審核要求）
                     VStack(spacing: 10) {
@@ -152,20 +148,20 @@ struct PaywallView: View {
 
                         // Apple 審核要求：必須有隱私政策和使用條款的可點擊連結
                         HStack(spacing: 16) {
-                            Link("使用條款", destination: termsURL)
+                            Link("使用條款 (EULA)", destination: termsURL)
                                 .font(.caption2)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(.blue)
 
-                            Text("·")
+                            Text("|")
                                 .font(.caption2)
                                 .foregroundStyle(.quaternary)
 
                             Link("隱私政策", destination: privacyURL)
                                 .font(.caption2)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(.blue)
                         }
                     }
-                    .padding(.bottom, 20)
+                    .padding(.bottom, 30)
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
@@ -180,16 +176,19 @@ struct PaywallView: View {
                 }
             }
             .task {
+                isLoadingProducts = true
                 await subscriptionManager.loadProducts()
                 selectedProduct = subscriptionManager.products.last
 
-                // 如果載入失敗，自動重試（解決 iPad 上的載入問題）
-                if subscriptionManager.products.isEmpty && retryCount < maxRetries {
+                // 自動重試最多 3 次（每次間隔 2 秒）
+                var attempts = 0
+                while subscriptionManager.products.isEmpty && attempts < 3 {
                     try? await Task.sleep(for: .seconds(2))
-                    retryCount += 1
+                    attempts += 1
                     await subscriptionManager.loadProducts()
                     selectedProduct = subscriptionManager.products.last
                 }
+                isLoadingProducts = false
             }
             .onChange(of: subscriptionManager.isSubscribed) { _, subscribed in
                 if subscribed { dismiss() }
